@@ -124,16 +124,20 @@ namespace CRUD3.Repositories
         public async Task<int> UpdateCompany(Company company,int id)
         {
             Company cmp=new Company();
-            var qry = "update company set cName=@cName,cAddress=@cAddress,cCountry=@cCountry where cid=@id";
+            var qry = "update company set cName=@cName,cAddress=@cAddress,cCountry=@cCountry where cid=@cid";
             using (var conn= context.CreateConnection())
             {
-                var res = await conn.ExecuteAsync(qry, new { id });
-               cmp= await GetCompanyById(id);
-                await UpdateEmployee(cmp.empList, id);
+                company.cId = id;
+                var res = await conn.ExecuteAsync(qry,company);
+                cmp= await GetCompanyById(id);
+                foreach (dynamic emp in company.empList)
+                {
+                    await UpdateEmployee(cmp.empList, id,emp.Salary);
+                }
                 return res;
             }
         }
-        public async Task<int> UpdateEmployee(List<Employee> emp,int cid)
+        public async Task<int> UpdateEmployee(List<Employee> emp,int cid,double sal)
         {
             var qry = "update employee set Salary=@salary where cid=@cid";
             using (var conn = context.CreateConnection())
@@ -141,8 +145,9 @@ namespace CRUD3.Repositories
                 foreach (Employee employee in emp)
                 {
                     var par = new DynamicParameters();
-                    par.Add("salary",employee.Salary);
-                    var res = await conn.ExecuteAsync(qry, new { cid,par });
+                    par.Add("salary", sal);
+                    par.Add("cid" ,cid);
+                    var res = await conn.ExecuteAsync(qry,par);
                     return res;
                 }
             }return 0;
